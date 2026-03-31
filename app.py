@@ -232,6 +232,64 @@ def upload_photo():
     file.save(UPLOAD_DIR / filename)
     return jsonify({"photo_url": f"/static/uploads/{filename}"})
 
+
+def extract_text_from_file(file_path, ext):
+    """파일에서 텍스트 추출"""
+    text = ""
+    try:
+        if ext == "pdf":
+            from PyPDF2 import PdfReader
+            reader = PdfReader(str(file_path))
+            for page in reader.pages[:30]:
+                text += (page.extract_text() or "") + "\n"
+        elif ext == "docx":
+            from docx import Document
+            doc = Document(str(file_path))
+            for para in doc.paragraphs:
+                text += para.text + "\n"
+        elif ext in ("xlsx", "xls"):
+            from openpyxl import load_workbook
+            wb = load_workbook(str(file_path), read_only=True)
+            for sheet in wb.sheetnames[:3]:
+                ws = wb[sheet]
+                for row in ws.iter_rows(max_row=100, values_only=True):
+                    text += "\t".join(str(c) if c is not None else "" for c in row) + "\n"
+            wb.close()
+        elif ext in ("txt", "csv"):
+            text = file_path.read_text(encoding="utf-8", errors="ignore")
+    except Exception as e:
+        text = f"[파일 읽기 실패: {str(e)}]"
+    return text.strip()[:8000]
+
+
+@app.route("/api/upload-file", methods=["POST"])
+def upload_file():
+    if "file" not in request.files:
+        return jsonify({"error": "파일이 없습니다."}), 400
+    file = request.files["file"]
+    if not file.filename:
+        return jsonify({"error": "파일명이 없습니다."}), 400
+    ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
+    if ext not in ["pdf", "docx", "xlsx", "xls", "txt", "csv"]:
+        return jsonify({"error": "PDF, DOCX, XLSX, TXT, CSV 파일만 지원합니다."}), 400
+
+    filename = f"{uuid.uuid4()}.{ext}"
+    save_path = UPLOAD_DIR / filename
+    file.save(save_path)
+
+    text = extract_text_from_file(save_path, ext)
+    save_path.unlink(missing_ok=True)
+
+    if not text:
+        return jsonify({"error": "파일에서 텍스트를 추출할 수 없습니다."}), 400
+
+    return jsonify({
+        "success": True,
+        "filename": file.filename,
+        "text": text,
+    })
+
+
 @app.route("/api/create-professor", methods=["POST"])
 def create_professor():
     data = request.json

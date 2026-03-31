@@ -704,6 +704,23 @@
 
     .btn-send:disabled { background: #c8ccdc; cursor: not-allowed; transform: none; box-shadow: none; }
 
+    .btn-attach {
+      width: 42px;
+      height: 42px;
+      background: #f0f4ff;
+      border: 1.5px solid #e0e4ef;
+      border-radius: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+
+    .btn-attach:hover { background: #e0e8ff; border-color: #4f6ef7; }
+
     /* ── Modal ── */
     .modal-overlay {
       display: none;
@@ -870,7 +887,13 @@
       </div>
     </div>
 
+    <div id="file-preview" style="display:none;background:#f0f4ff;padding:8px 14px;border-bottom:1px solid #e0e4ef;font-size:12px;color:#4f6ef7;display:none;align-items:center;gap:8px;">
+      <span id="file-preview-name"></span>
+      <button onclick="clearAttachedFile()" style="background:none;border:none;color:#999;cursor:pointer;font-size:14px">✕</button>
+    </div>
     <div class="chat-input-area">
+      <button class="btn-attach" onclick="document.getElementById('chat-file').click()" title="파일 첨부">📎</button>
+      <input type="file" id="chat-file" accept=".pdf,.docx,.xlsx,.xls,.txt,.csv" style="display:none" onchange="handleFileAttach(this)">
       <textarea id="chat-input" placeholder="질문하세요... (Enter 전송 / Shift+Enter 줄바꿈)" rows="1"></textarea>
       <button class="btn-send" id="btn-send" onclick="sendMessage()">↑</button>
     </div>
@@ -1371,6 +1394,47 @@ async function saveProfessor() {
   }
 }
 
+// ── File Attach ──
+let attachedFileText = '';
+let attachedFileName = '';
+
+async function handleFileAttach(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const preview = document.getElementById('file-preview');
+  const previewName = document.getElementById('file-preview-name');
+  previewName.textContent = '📄 ' + file.name + ' (읽는 중...)';
+  preview.style.display = 'flex';
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    const data = await fetch('/api/upload-file', { method: 'POST', body: formData }).then(r => r.json());
+    if (data.success) {
+      attachedFileText = data.text;
+      attachedFileName = data.filename;
+      previewName.textContent = '📄 ' + data.filename + ' (첨부됨)';
+    } else {
+      previewName.textContent = '❌ ' + (data.error || '파일 읽기 실패');
+      attachedFileText = '';
+      attachedFileName = '';
+    }
+  } catch (e) {
+    previewName.textContent = '❌ 파일 업로드 오류';
+    attachedFileText = '';
+    attachedFileName = '';
+  }
+  input.value = '';
+}
+
+function clearAttachedFile() {
+  attachedFileText = '';
+  attachedFileName = '';
+  document.getElementById('file-preview').style.display = 'none';
+}
+
 // ── Chat ──
 async function sendMessage() {
   const input = document.getElementById('chat-input');
@@ -1380,8 +1444,16 @@ async function sendMessage() {
   input.value = '';
   input.style.height = 'auto';
 
-  appendMessage('user', message);
-  chatHistory.push({ role: 'user', content: message });
+  let fullMessage = message;
+  let displayMessage = message;
+  if (attachedFileText) {
+    displayMessage = `📄 ${attachedFileName}\n\n${message}`;
+    fullMessage = `[첨부파일: ${attachedFileName}]\n\n--- 파일 내용 ---\n${attachedFileText}\n--- 파일 끝 ---\n\n${message}`;
+    clearAttachedFile();
+  }
+
+  appendMessage('user', displayMessage);
+  chatHistory.push({ role: 'user', content: fullMessage });
 
   const typingId = showTyping();
   document.getElementById('btn-send').disabled = true;
@@ -1393,7 +1465,7 @@ async function sendMessage() {
       body: JSON.stringify({
         professor_id: currentProfId,
         messages: chatHistory.slice(0, -1),
-        message,
+        message: fullMessage,
       }),
     }).then(r => r.json());
 
