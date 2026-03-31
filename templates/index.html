@@ -1,0 +1,1514 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>교수님 에이전트</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: #f0f2f5;
+      height: 100vh;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    #sidebar {
+      width: 270px;
+      min-width: 270px;
+      background: #1a1d2e;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    .sidebar-header {
+      padding: 22px 18px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .sidebar-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 17px;
+      color: #e8c84a;
+      letter-spacing: 0.3px;
+    }
+
+    .sidebar-subtitle {
+      font-size: 11px;
+      color: rgba(255,255,255,0.35);
+      margin-top: 3px;
+    }
+
+    .btn-add-professor {
+      margin: 14px;
+      padding: 11px;
+      background: linear-gradient(135deg, #4f6ef7, #7c4dff);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 13px;
+      font-family: 'Noto Sans KR', sans-serif;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      transition: all 0.2s;
+    }
+
+    .btn-add-professor:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(79,110,247,0.4);
+    }
+
+    #professor-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px;
+    }
+
+    #professor-list::-webkit-scrollbar { width: 3px; }
+    #professor-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+
+    .sidebar-empty {
+      text-align: center;
+      padding: 40px 14px;
+      color: rgba(255,255,255,0.25);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .prof-card {
+      padding: 11px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      transition: background 0.15s;
+      margin-bottom: 3px;
+    }
+
+    .prof-card:hover { background: rgba(255,255,255,0.07); }
+    .prof-card.active { background: rgba(79,110,247,0.22); }
+
+    .prof-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 11px;
+      background: linear-gradient(135deg, #4f6ef7, #7c4dff);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      min-width: 42px;
+      overflow: hidden;
+    }
+
+    .prof-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+    .prof-info { flex: 1; min-width: 0; }
+
+    .prof-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .prof-meta {
+      font-size: 11px;
+      color: rgba(255,255,255,0.35);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .style-tag {
+      display: inline-block;
+      font-size: 10px;
+      padding: 1px 7px;
+      border-radius: 4px;
+      background: rgba(79,110,247,0.3);
+      color: #a0b4ff;
+      margin-top: 3px;
+    }
+
+    .prof-delete {
+      opacity: 0;
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.3);
+      cursor: pointer;
+      padding: 4px 6px;
+      border-radius: 5px;
+      font-size: 13px;
+      transition: all 0.15s;
+    }
+
+    .prof-card:hover .prof-delete { opacity: 1; }
+    .prof-delete:hover { color: #ff6b6b; background: rgba(255,107,107,0.15); }
+
+    .sidebar-footer {
+      padding: 14px;
+      border-top: 1px solid rgba(255,255,255,0.07);
+    }
+
+    .btn-settings {
+      width: 100%;
+      padding: 10px;
+      background: rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.6);
+      border: none;
+      border-radius: 8px;
+      font-size: 12px;
+      font-family: 'Noto Sans KR', sans-serif;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      transition: background 0.15s;
+    }
+
+    .btn-settings:hover { background: rgba(255,255,255,0.1); }
+
+    /* ── Main ── */
+    #main {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .view { display: none; flex: 1; overflow: hidden; }
+    .view.active { display: flex; flex-direction: column; }
+
+    /* ── Home View ── */
+    #view-home {
+      align-items: center;
+      justify-content: center;
+      background: #f0f2f5;
+    }
+
+    .home-content { text-align: center; max-width: 400px; padding: 24px; }
+    .home-icon { font-size: 60px; margin-bottom: 18px; }
+
+    .home-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 26px;
+      color: #1a1d2e;
+      margin-bottom: 12px;
+    }
+
+    .home-desc {
+      font-size: 14px;
+      color: #666;
+      line-height: 1.7;
+      margin-bottom: 28px;
+    }
+
+    .btn-primary {
+      padding: 13px 30px;
+      background: linear-gradient(135deg, #4f6ef7, #7c4dff);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 14px;
+      font-family: 'Noto Sans KR', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(79,110,247,0.4);
+    }
+
+    /* ── Create View ── */
+    #view-create {
+      background: #f0f2f5;
+      overflow-y: auto;
+    }
+
+    .create-container {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 28px 20px 40px;
+      width: 100%;
+    }
+
+    .create-header { margin-bottom: 22px; }
+
+    .create-header h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      color: #1a1d2e;
+    }
+
+    .create-header p { font-size: 13px; color: #777; margin-top: 5px; }
+
+    .steps { display: flex; gap: 7px; margin-bottom: 24px; align-items: center; }
+
+    .step-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #ddd;
+      transition: all 0.25s;
+    }
+
+    .step-dot.active { background: #4f6ef7; width: 22px; border-radius: 4px; }
+    .step-dot.done { background: #4caf50; }
+
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 22px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .card h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1a1d2e;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .form-group { margin-bottom: 14px; }
+
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      color: #555;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 9px 13px;
+      border: 1.5px solid #e0e4ef;
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: 'Noto Sans KR', sans-serif;
+      background: #f8f9fc;
+      color: #333;
+      transition: border-color 0.2s;
+      outline: none;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+      border-color: #4f6ef7;
+      background: #fff;
+    }
+
+    .form-group textarea { resize: vertical; min-height: 75px; line-height: 1.5; }
+
+    .search-row { display: flex; gap: 9px; }
+    .search-row input { flex: 1; }
+
+    .btn-search {
+      padding: 9px 18px;
+      background: #4f6ef7;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: 'Noto Sans KR', sans-serif;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+
+    .btn-search:hover { background: #3d5ce6; }
+    .btn-search:disabled { background: #b0b8d8; cursor: not-allowed; }
+
+    /* Scholar results */
+    .scholar-profile {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 14px;
+      background: #f0f4ff;
+      border-radius: 10px;
+      margin-bottom: 14px;
+      border: 1.5px solid #c7d4ff;
+    }
+
+    .scholar-icon { font-size: 40px; }
+    .scholar-profile-info h4 { font-size: 15px; color: #1a1d2e; }
+    .scholar-profile-info p { font-size: 12px; color: #666; margin-top: 3px; }
+
+    .interests { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+
+    .interest-tag {
+      padding: 2px 9px;
+      background: #4f6ef7;
+      color: #fff;
+      border-radius: 20px;
+      font-size: 11px;
+    }
+
+    .papers-list {
+      max-height: 220px;
+      overflow-y: auto;
+      border: 1.5px solid #e8ecf6;
+      border-radius: 9px;
+    }
+
+    .paper-item {
+      padding: 10px 14px;
+      border-bottom: 1px solid #f0f2f5;
+      font-size: 12px;
+    }
+
+    .paper-item:last-child { border-bottom: none; }
+    .paper-title { color: #1a1d2e; font-weight: 500; line-height: 1.4; }
+    .paper-meta { color: #aaa; font-size: 11px; margin-top: 2px; }
+
+    /* Style grid */
+    .style-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+    }
+
+    .style-option {
+      padding: 13px 10px;
+      border: 2px solid #e8ecf6;
+      border-radius: 11px;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: center;
+    }
+
+    .style-option:hover { border-color: #4f6ef7; background: #f5f7ff; }
+    .style-option.selected { border-color: #4f6ef7; background: #f0f4ff; }
+
+    .style-emoji { font-size: 26px; margin-bottom: 5px; }
+    .style-name { font-size: 13px; font-weight: 600; color: #1a1d2e; }
+    .style-desc { font-size: 11px; color: #888; margin-top: 2px; line-height: 1.3; }
+
+    /* Photo upload */
+    .photo-upload-area {
+      border: 2px dashed #c8d2ec;
+      border-radius: 12px;
+      padding: 28px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: #f8f9fc;
+    }
+
+    .photo-upload-area:hover { border-color: #4f6ef7; background: #f0f4ff; }
+
+    .photo-preview { display: none; margin-top: 14px; text-align: center; }
+
+    .photo-preview img {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid #4f6ef7;
+    }
+
+    /* Nav buttons */
+    .nav-buttons { display: flex; justify-content: space-between; margin-top: 20px; }
+
+    .btn-back {
+      padding: 11px 22px;
+      background: #fff;
+      color: #555;
+      border: 1.5px solid #e0e4ef;
+      border-radius: 9px;
+      font-size: 13px;
+      font-family: 'Noto Sans KR', sans-serif;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-back:hover { background: #f5f5f5; }
+
+    .btn-next {
+      padding: 11px 26px;
+      background: linear-gradient(135deg, #4f6ef7, #7c4dff);
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      font-size: 13px;
+      font-family: 'Noto Sans KR', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-next:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(79,110,247,0.35);
+    }
+
+    .btn-next:disabled { background: #b0b8d8; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    /* Manual paper add */
+    .manual-paper-input { display: flex; gap: 8px; }
+
+    .btn-add-paper {
+      padding: 8px 13px;
+      background: #f0f4ff;
+      color: #4f6ef7;
+      border: 1.5px solid #c7d4ff;
+      border-radius: 7px;
+      font-size: 12px;
+      font-family: 'Noto Sans KR', sans-serif;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+
+    .btn-add-paper:hover { background: #e0e8ff; }
+
+    .candidate-card {
+      display: flex;
+      align-items: center;
+      padding: 12px 14px;
+      border: 1.5px solid #e0e4ef;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: #fafbff;
+    }
+
+    .candidate-card:hover { border-color: #4f6ef7; background: #f0f4ff; }
+
+    .candidate-info { flex: 1; }
+    .candidate-name { font-size: 14px; font-weight: 600; color: #1a1d2e; }
+    .candidate-affil { font-size: 12px; color: #888; margin-top: 3px; }
+    .candidate-topics { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px; }
+    .candidate-arrow { font-size: 16px; color: #c0c8e8; margin-left: 10px; }
+
+    .manual-paper-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      border-bottom: 1px solid #f0f2f5;
+      font-size: 12px;
+    }
+
+    .manual-paper-item span { flex: 1; color: #333; }
+
+    .btn-remove-paper {
+      background: none;
+      border: none;
+      color: #ccc;
+      cursor: pointer;
+      font-size: 14px;
+      transition: color 0.15s;
+    }
+
+    .btn-remove-paper:hover { color: #ff6b6b; }
+
+    /* ── Chat View ── */
+    #view-chat { background: #f0f2f5; }
+    #view-chat.active { display: flex; }
+
+    .chat-header {
+      background: #fff;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+      z-index: 10;
+      flex-shrink: 0;
+    }
+
+    .chat-prof-avatar {
+      width: 46px;
+      height: 46px;
+      border-radius: 13px;
+      background: linear-gradient(135deg, #4f6ef7, #7c4dff);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      overflow: hidden;
+      min-width: 46px;
+    }
+
+    .chat-prof-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+    .chat-prof-info h3 { font-size: 16px; color: #1a1d2e; }
+    .chat-prof-info p { font-size: 11px; color: #999; margin-top: 2px; }
+
+    .chat-style-badge {
+      margin-left: auto;
+      padding: 5px 13px;
+      background: #f0f4ff;
+      color: #4f6ef7;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .chat-messages::-webkit-scrollbar { width: 3px; }
+    .chat-messages::-webkit-scrollbar-thumb { background: #d0d4e8; border-radius: 2px; }
+
+    .chat-welcome {
+      text-align: center;
+      padding: 60px 20px;
+      color: #aaa;
+    }
+
+    .chat-welcome .icon { font-size: 44px; margin-bottom: 10px; }
+    .chat-welcome p { font-size: 13px; line-height: 1.7; }
+
+    .message {
+      display: flex;
+      gap: 10px;
+      max-width: 78%;
+      animation: fadeInUp 0.25s ease;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message.user { align-self: flex-end; flex-direction: row-reverse; }
+    .message.assistant { align-self: flex-start; }
+
+    .msg-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #4f6ef7, #7c4dff);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      min-width: 34px;
+      overflow: hidden;
+    }
+
+    .msg-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+    .msg-bubble {
+      padding: 11px 15px;
+      border-radius: 14px;
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .message.user .msg-bubble {
+      background: linear-gradient(135deg, #4f6ef7, #7c4dff);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+
+    .message.assistant .msg-bubble {
+      background: #fff;
+      color: #2a2a2a;
+      border-bottom-left-radius: 4px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+
+    .typing-indicator { display: flex; gap: 4px; padding: 4px 2px; }
+
+    .typing-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #ccc;
+      animation: typing 1.3s infinite;
+    }
+
+    .typing-dot:nth-child(2) { animation-delay: 0.18s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.36s; }
+
+    @keyframes typing {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+      30% { transform: translateY(-7px); opacity: 1; }
+    }
+
+    .chat-input-area {
+      background: #fff;
+      padding: 14px 20px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      box-shadow: 0 -1px 6px rgba(0,0,0,0.06);
+      flex-shrink: 0;
+    }
+
+    #chat-input {
+      flex: 1;
+      padding: 11px 14px;
+      border: 1.5px solid #e0e4ef;
+      border-radius: 11px;
+      font-size: 13px;
+      font-family: 'Noto Sans KR', sans-serif;
+      resize: none;
+      outline: none;
+      transition: border-color 0.2s;
+      max-height: 120px;
+      min-height: 42px;
+      line-height: 1.5;
+      overflow-y: auto;
+    }
+
+    #chat-input:focus { border-color: #4f6ef7; }
+
+    .btn-send {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, #4f6ef7, #7c4dff);
+      color: #fff;
+      border: none;
+      border-radius: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .btn-send:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(79,110,247,0.35);
+    }
+
+    .btn-send:disabled { background: #c8ccdc; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(3px);
+    }
+
+    .modal-overlay.show { display: flex; }
+
+    .modal {
+      background: #fff;
+      border-radius: 18px;
+      padding: 28px;
+      width: 460px;
+      max-width: 92%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+    }
+
+    .modal h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 20px;
+      color: #1a1d2e;
+      margin-bottom: 7px;
+    }
+
+    .modal .modal-desc {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 18px;
+      line-height: 1.6;
+    }
+
+    .modal .modal-desc a {
+      color: #4f6ef7;
+      text-decoration: none;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 9px;
+      justify-content: flex-end;
+      margin-top: 18px;
+    }
+
+    .btn-cancel {
+      padding: 9px 18px;
+      background: #f2f2f5;
+      color: #555;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: 'Noto Sans KR', sans-serif;
+      cursor: pointer;
+    }
+
+    .btn-save {
+      padding: 9px 22px;
+      background: linear-gradient(135deg, #4f6ef7, #7c4dff);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: 'Noto Sans KR', sans-serif;
+      cursor: pointer;
+    }
+
+    /* Alerts */
+    .alert {
+      padding: 11px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+
+    .alert-error { background: #fff0f0; color: #c62828; border: 1px solid #ffcdd2; }
+    .alert-success { background: #f0fff4; color: #2e7d32; border: 1px solid #c8e6c9; }
+    .alert-info { background: #f0f4ff; color: #1a4bbd; border: 1px solid #c7d4ff; }
+
+    /* Loading */
+    .loading { display: inline-flex; align-items: center; gap: 8px; color: #666; font-size: 12px; }
+
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid #e0e4ef;
+      border-top-color: #4f6ef7;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Msg formatting */
+    .msg-bubble strong { font-weight: 600; }
+    .msg-bubble em { font-style: italic; }
+    .msg-bubble br { display: block; content: ''; margin-top: 4px; }
+  </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-title">교수님 에이전트</div>
+    <div class="sidebar-subtitle">AI Professor Bot</div>
+  </div>
+
+  <button class="btn-add-professor" onclick="showCreate()">
+    <span>＋</span> 새 교수님 추가
+  </button>
+
+  <div id="professor-list">
+    <div class="sidebar-empty">아직 등록된 교수님이 없습니다.<br>위 버튼을 눌러 추가해주세요.</div>
+  </div>
+
+  <div class="sidebar-footer">
+    <button class="btn-settings" onclick="showSettings()">⚙&nbsp; Gemini API 키 설정</button>
+  </div>
+</div>
+
+<!-- Main -->
+<div id="main">
+
+  <!-- Home -->
+  <div id="view-home" class="view active">
+    <div class="home-content">
+      <div class="home-icon">🎓</div>
+      <h1 class="home-title">교수님 에이전트</h1>
+      <p class="home-desc">
+        Google Scholar에서 교수님의 연구를 불러와<br>
+        교수님의 철학과 말투 그대로 대화하는 AI 봇을 만들어보세요.<br>
+        논문 피드백, 연구 방향 조언, 아이디어 검토까지!
+      </p>
+      <button class="btn-primary" onclick="showCreate()">첫 번째 교수님 봇 만들기</button>
+    </div>
+  </div>
+
+  <!-- Create -->
+  <div id="view-create" class="view">
+    <div class="create-container" id="create-content"></div>
+  </div>
+
+  <!-- Chat -->
+  <div id="view-chat" class="view">
+    <div class="chat-header">
+      <div class="chat-prof-avatar" id="chat-header-avatar">🎓</div>
+      <div class="chat-prof-info">
+        <h3 id="chat-header-name">교수님</h3>
+        <p id="chat-header-affil"></p>
+      </div>
+      <div class="chat-style-badge" id="chat-header-style"></div>
+    </div>
+
+    <div class="chat-messages" id="chat-messages">
+      <div class="chat-welcome">
+        <div class="icon">💬</div>
+        <p>교수님께 질문해보세요.<br>연구 조언, 논문 피드백, 방향 설정 모두 OK!</p>
+      </div>
+    </div>
+
+    <div class="chat-input-area">
+      <textarea id="chat-input" placeholder="질문하세요... (Enter 전송 / Shift+Enter 줄바꿈)" rows="1"></textarea>
+      <button class="btn-send" id="btn-send" onclick="sendMessage()">↑</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="modal-settings">
+  <div class="modal">
+    <h2>⚙ Gemini API 키 설정</h2>
+    <p class="modal-desc">
+      Google Gemini 무료 API 키를 입력해주세요. 각 사용자가 개인 키를 사용하면 무료 한도 내에서 충분히 사용 가능합니다.<br><br>
+      <strong>발급 방법:</strong> Google AI Studio (<code>aistudio.google.com</code>) → Get API key → Create API key
+    </p>
+    <div class="form-group">
+      <label>API 키</label>
+      <input type="password" id="api-key-input" placeholder="AIza...로 시작하는 키를 붙여넣으세요">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="hideSettings()">취소</button>
+      <button class="btn-save" onclick="saveSettings()">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──
+let currentProfId = null;
+let currentProf = null;
+let chatHistory = [];
+let manualPapers = [];
+let createData = {};
+
+const STYLES = [
+  { key: '팩폭형',    emoji: '🔥', desc: '직설적·솔직한 비판' },
+  { key: '소프트킬형', emoji: '🗡️', desc: '부드럽지만 치명적인 지적' },
+  { key: '디테일장인형', emoji: '🔬', desc: '방법론 세부까지 파고드는 스타일' },
+  { key: '멘토형',    emoji: '🌱', desc: '따뜻하게 방향을 제시하는 스타일' },
+  { key: '철학자형',  emoji: '🤔', desc: "끊임없이 '왜?'를 묻는 스타일" },
+];
+
+// ── View ──
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+}
+
+function showHome() {
+  showView('home');
+  document.querySelectorAll('.prof-card').forEach(c => c.classList.remove('active'));
+  currentProfId = null;
+}
+
+function showCreate() {
+  manualPapers = [];
+  createData = {
+    step: 1, name: '', affiliation: '', interests: [], papers: [],
+    photo: '', speaking_style: '팩폭형', custom_style: '',
+    philosophy: '', emphasizes: '', dislikes: '',
+    famous_quotes: '', feedback_examples: '',
+  };
+  renderStep();
+  showView('create');
+}
+
+// ── Professor List ──
+async function loadProfessors() {
+  const profs = await fetch('/api/professors').then(r => r.json());
+  const list = document.getElementById('professor-list');
+  if (profs.length === 0) {
+    list.innerHTML = '<div class="sidebar-empty">아직 등록된 교수님이 없습니다.<br>위 버튼을 눌러 추가해주세요.</div>';
+    return;
+  }
+  list.innerHTML = profs.map(p => `
+    <div class="prof-card" id="card-${p.id}" onclick="selectProfessor('${p.id}')">
+      <div class="prof-avatar">${p.photo ? `<img src="${p.photo}" alt="">` : '🎓'}</div>
+      <div class="prof-info">
+        <div class="prof-name">${p.name} 교수님</div>
+        <div class="prof-meta">${p.affiliation || '소속 미입력'} · 논문 ${p.paper_count}편</div>
+        <span class="style-tag">${p.speaking_style || ''}</span>
+      </div>
+      <button class="prof-delete" onclick="event.stopPropagation(); deleteProfessor('${p.id}', '${p.name}')">✕</button>
+    </div>
+  `).join('');
+}
+
+async function selectProfessor(profId) {
+  document.querySelectorAll('.prof-card').forEach(c => c.classList.remove('active'));
+  const card = document.getElementById('card-' + profId);
+  if (card) card.classList.add('active');
+
+  const prof = await fetch(`/api/professor/${profId}`).then(r => r.json());
+  currentProf = prof;
+  currentProfId = profId;
+  chatHistory = [];
+
+  const avatarEl = document.getElementById('chat-header-avatar');
+  avatarEl.innerHTML = prof.photo ? `<img src="${prof.photo}" alt="">` : '🎓';
+  document.getElementById('chat-header-name').textContent = prof.name + ' 교수님';
+  document.getElementById('chat-header-affil').textContent = prof.affiliation || '';
+  document.getElementById('chat-header-style').textContent = prof.speaking_style || '';
+
+  document.getElementById('chat-messages').innerHTML = `
+    <div class="chat-welcome">
+      <div class="icon">💬</div>
+      <p>${prof.name} 교수님께 질문해보세요.<br>연구 조언, 논문 피드백, 방향 설정 모두 OK!</p>
+    </div>`;
+
+  showView('chat');
+}
+
+async function deleteProfessor(profId, name) {
+  if (!confirm(`${name} 교수님 봇을 삭제하시겠습니까?`)) return;
+  await fetch(`/api/professor/${profId}`, { method: 'DELETE' });
+  if (currentProfId === profId) showHome();
+  loadProfessors();
+}
+
+// ── Create Steps ──
+function renderStep() {
+  const step = createData.step;
+  const dots = [1,2,3,4].map(i =>
+    `<div class="step-dot ${i === step ? 'active' : i < step ? 'done' : ''}"></div>`
+  ).join('');
+
+  let body = '';
+
+  if (step === 1) {
+    body = `
+      <div class="create-header">
+        <h2>1단계 — 교수님 검색</h2>
+        <p>Google Scholar에서 교수님의 연구를 자동으로 불러옵니다.</p>
+      </div>
+      <div class="card">
+        <h3>🔍 논문 데이터베이스 검색</h3>
+        <div class="form-group">
+          <label>교수님 성함 (영문 권장)</label>
+          <div class="search-row">
+            <input type="text" id="scholar-name" placeholder="예: Dongmin Lee" value="${createData.name}"
+              onkeydown="if(event.key==='Enter') searchScholar()">
+            <button class="btn-search" id="btn-scholar" onclick="searchScholar()">검색</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>소속 기관 힌트 <span style="color:#aaa;font-weight:400">(선택 — 동명이인 구분에 도움)</span></label>
+          <input type="text" id="scholar-affil-hint" placeholder="예: Korea University, KAIST, Seoul National University">
+        </div>
+        <div id="scholar-status"></div>
+        <div id="scholar-results"></div>
+      </div>
+      <div class="card">
+        <h3>✏️ 직접 입력 (검색이 안 될 경우)</h3>
+        <div class="form-group">
+          <label>교수님 성함</label>
+          <input type="text" id="manual-name" placeholder="성함" value="${createData.name}">
+        </div>
+        <div class="form-group">
+          <label>소속 기관</label>
+          <input type="text" id="manual-affil" placeholder="예: KAIST 전산학과" value="${createData.affiliation}">
+        </div>
+        <div class="form-group">
+          <label>연구 분야 (쉼표 구분)</label>
+          <input type="text" id="manual-interests" placeholder="예: 머신러닝, 컴퓨터비전" value="${createData.interests.join(', ')}">
+        </div>
+        <div class="form-group">
+          <label>주요 논문 제목 추가</label>
+          <div class="manual-paper-input">
+            <input type="text" id="manual-paper-input" placeholder="논문 제목 입력 후 추가"
+              onkeydown="if(event.key==='Enter') addManualPaper()">
+            <button class="btn-add-paper" onclick="addManualPaper()">+ 추가</button>
+          </div>
+        </div>
+        <div id="manual-papers-list"></div>
+      </div>
+      <div class="nav-buttons">
+        <div></div>
+        <button class="btn-next" onclick="goStep2()">다음 →</button>
+      </div>`;
+  }
+
+  else if (step === 2) {
+    body = `
+      <div class="create-header">
+        <h2>2단계 — 프로필 설정</h2>
+        <p>교수님 사진과 말투 스타일을 선택하세요.</p>
+      </div>
+      <div class="card">
+        <h3>📸 교수님 사진 업로드</h3>
+        <div class="photo-upload-area" onclick="document.getElementById('photo-file').click()">
+          <div style="font-size:32px;margin-bottom:7px">📷</div>
+          <p style="font-size:13px;color:#888">클릭하여 사진 업로드</p>
+          <p style="font-size:11px;color:#bbb;margin-top:3px">JPG, PNG, WEBP 지원</p>
+        </div>
+        <input type="file" id="photo-file" accept="image/*" style="display:none" onchange="handlePhotoUpload(this)">
+        <div class="photo-preview" id="photo-preview">
+          <img id="photo-preview-img" src="" alt="교수님 사진">
+          <p style="font-size:12px;color:#4caf50;margin-top:7px">✓ 사진 업로드 완료</p>
+        </div>
+      </div>
+      <div class="card">
+        <h3>🎭 말투 스타일 선택</h3>
+        <div class="style-grid">
+          ${STYLES.map(s => `
+            <div class="style-option ${createData.speaking_style === s.key ? 'selected' : ''}"
+                 onclick="selectStyle('${s.key}', this)">
+              <div class="style-emoji">${s.emoji}</div>
+              <div class="style-name">${s.key}</div>
+              <div class="style-desc">${s.desc}</div>
+            </div>`).join('')}
+        </div>
+        <div class="form-group" style="margin-top:14px">
+          <label>추가 말투 특징 (선택사항)</label>
+          <input type="text" id="custom-style" placeholder="예: 항상 반말로 말함, '~하게나' 어투"
+            value="${createData.custom_style}">
+        </div>
+      </div>
+      <div class="nav-buttons">
+        <button class="btn-back" onclick="setStep(1)">← 이전</button>
+        <button class="btn-next" onclick="goStep3()">다음 →</button>
+      </div>`;
+  }
+
+  else if (step === 3) {
+    body = `
+      <div class="create-header">
+        <h2>3단계 — 연구 철학 입력</h2>
+        <p>교수님을 더 정확하게 재현하기 위한 정보입니다. 아는 만큼만 입력해주세요.</p>
+      </div>
+      <div class="card">
+        <h3>🧭 연구 철학 & 가치관</h3>
+        <div class="form-group">
+          <label>교수님의 전반적인 연구 철학</label>
+          <textarea id="philosophy" placeholder="예: 실험 재현성을 최우선시하며, 데이터 수집 과정의 엄밀함이 모든 연구의 기초라고 강조하심">${createData.philosophy}</textarea>
+        </div>
+        <div class="form-group">
+          <label>교수님이 항상 강조하는 것</label>
+          <textarea id="emphasizes" placeholder="예: 가설 설정의 명확성, 비교군 설계, 통계적 유의성보다 효과 크기">${createData.emphasizes}</textarea>
+        </div>
+        <div class="form-group">
+          <label>교수님이 싫어하는 것 / 자주 지적하는 약점</label>
+          <textarea id="dislikes" placeholder="예: 가설 없이 데이터부터 모으는 연구, 애매한 결론, 선행연구 검토 부족">${createData.dislikes}</textarea>
+        </div>
+        <div class="form-group">
+          <label>교수님의 명언 / 자주 하시는 말씀</label>
+          <textarea id="famous-quotes" placeholder="예: '데이터가 말하게 하라', '가설 없는 실험은 낚시질이다'">${createData.famous_quotes}</textarea>
+        </div>
+      </div>
+      <div class="nav-buttons">
+        <button class="btn-back" onclick="setStep(2)">← 이전</button>
+        <button class="btn-next" onclick="goStep4()">다음 →</button>
+      </div>`;
+  }
+
+  else if (step === 4) {
+    body = `
+      <div class="create-header">
+        <h2>4단계 — 피드백 예시</h2>
+        <p>교수님의 실제 말이나 코멘트를 넣으면 재현도가 훨씬 높아집니다.</p>
+      </div>
+      <div class="card">
+        <h3>📝 실제 피드백 / 발언 예시</h3>
+        <div class="alert alert-info">
+          교수님이 논문이나 랩미팅에서 실제로 하셨던 말을 붙여넣어 주세요. 많을수록 정확해집니다. (선택사항)
+        </div>
+        <div class="form-group">
+          <textarea id="feedback-examples" style="min-height:140px"
+            placeholder="예시:
+'샘플 크기가 30이면 통계적으로 아무 의미가 없어.'
+'선행연구에서 이미 비슷한 걸 했는데 차별점이 뭔지 명확히 해야지.'
+'결론이 너무 약해. 데이터가 이걸 지지한다면 더 강하게 주장해도 돼.'">${createData.feedback_examples}</textarea>
+        </div>
+      </div>
+      <div class="nav-buttons">
+        <button class="btn-back" onclick="setStep(3)">← 이전</button>
+        <button class="btn-next" id="btn-save"
+          onclick="saveProfessor()"
+          style="background: linear-gradient(135deg, #43a047, #2e7d32)">
+          ✓ 교수님 봇 생성
+        </button>
+      </div>`;
+  }
+
+  document.getElementById('create-content').innerHTML = `<div class="steps">${dots}</div>${body}`;
+  if (step === 1) renderManualPapersList();
+  if (step === 2 && createData.photo) {
+    const preview = document.getElementById('photo-preview');
+    const img = document.getElementById('photo-preview-img');
+    if (preview && img) { img.src = createData.photo; preview.style.display = 'block'; }
+  }
+}
+
+function setStep(n) { createData.step = n; renderStep(); }
+
+function selectStyle(key, el) {
+  createData.speaking_style = key;
+  document.querySelectorAll('.style-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// Manual papers
+function renderManualPapersList() {
+  const list = document.getElementById('manual-papers-list');
+  if (!list) return;
+  list.innerHTML = manualPapers.map((p, i) => `
+    <div class="manual-paper-item">
+      <span>${p.title}</span>
+      <button class="btn-remove-paper" onclick="removeManualPaper(${i})">✕</button>
+    </div>`).join('');
+}
+
+function addManualPaper() {
+  const input = document.getElementById('manual-paper-input');
+  const title = (input.value || '').trim();
+  if (!title) return;
+  manualPapers.push({ title, abstract: '', year: '', citations: 0 });
+  input.value = '';
+  renderManualPapersList();
+}
+
+function removeManualPaper(i) {
+  manualPapers.splice(i, 1);
+  renderManualPapersList();
+}
+
+// Scholar search
+async function searchScholar() {
+  const name = (document.getElementById('scholar-name').value || '').trim();
+  if (!name) return;
+  const affilHint = (document.getElementById('scholar-affil-hint').value || '').trim();
+
+  const btn = document.getElementById('btn-scholar');
+  const status = document.getElementById('scholar-status');
+  const results = document.getElementById('scholar-results');
+
+  btn.disabled = true;
+  btn.textContent = '검색 중...';
+  status.innerHTML = '<div class="loading"><div class="spinner"></div> 검색 중...</div>';
+  results.innerHTML = '';
+
+  try {
+    const data = await fetch('/api/search-scholar-candidates', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, affil_hint: affilHint }),
+    }).then(r => r.json());
+
+    if (data.success) {
+      status.innerHTML = '<div class="alert alert-info">아래에서 교수님을 선택해주세요.</div>';
+      results.innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          ${data.candidates.map(c => `
+            <div class="candidate-card" onclick="selectCandidate('${c.id}', '${c.name.replace(/'/g,"\\'")}')">
+              <div class="candidate-info">
+                <div class="candidate-name">🎓 ${c.name}</div>
+                <div class="candidate-affil">${c.affiliation || '소속 정보 없음'} · 논문 ${c.paper_count}편</div>
+                <div class="candidate-topics">${c.topics.map(t => `<span class="interest-tag">${t}</span>`).join('')}</div>
+              </div>
+              <div class="candidate-arrow">→</div>
+            </div>`).join('')}
+        </div>`;
+    } else {
+      status.innerHTML = `<div class="alert alert-error">❌ ${data.error}<br>아래에서 직접 입력해주세요.</div>`;
+    }
+  } catch (e) {
+    status.innerHTML = '<div class="alert alert-error">❌ 검색 중 오류가 발생했습니다. 직접 입력해주세요.</div>';
+  }
+
+  btn.disabled = false;
+  btn.textContent = '검색';
+}
+
+async function selectCandidate(authorId, authorName) {
+  const status = document.getElementById('scholar-status');
+  const results = document.getElementById('scholar-results');
+
+  status.innerHTML = `<div class="loading"><div class="spinner"></div> ${authorName} 교수님 논문 불러오는 중...</div>`;
+  results.innerHTML = '';
+
+  try {
+    const data = await fetch('/api/search-scholar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ author_id: authorId }),
+    }).then(r => r.json());
+
+    if (data.success) {
+      createData.name = data.name;
+      createData.affiliation = data.affiliation;
+      createData.interests = data.interests;
+      createData.papers = data.papers;
+
+      status.innerHTML = '<div class="alert alert-success">✓ 논문 불러오기 완료! 아래 정보가 틀리면 직접 수정해주세요.</div>';
+      results.innerHTML = `
+        <div style="background:#f8f9fc;border:1.5px solid #e0e4ef;border-radius:10px;padding:14px;margin-bottom:12px;">
+          <div style="font-size:12px;color:#555;font-weight:600;margin-bottom:10px">📋 불러온 정보 확인 및 수정</div>
+          <div class="form-group" style="margin-bottom:10px">
+            <label>교수님 성함</label>
+            <input type="text" id="loaded-name" value="${data.name}" oninput="createData.name=this.value">
+          </div>
+          <div class="form-group" style="margin-bottom:10px">
+            <label>소속 기관 <span style="color:#e05c5c;font-size:11px">※ 틀리면 여기서 수정하세요</span></label>
+            <input type="text" id="loaded-affil" value="${data.affiliation}" oninput="createData.affiliation=this.value">
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label>연구 분야 키워드 <span style="color:#e05c5c;font-size:11px">※ 틀리면 여기서 수정하세요</span></label>
+            <input type="text" id="loaded-interests" value="${data.interests.join(', ')}"
+              oninput="createData.interests=this.value.split(',').map(s=>s.trim()).filter(Boolean)">
+          </div>
+        </div>
+        <p style="font-size:12px;color:#666;margin-bottom:8px">📚 논문 ${data.papers.length}편 수집됨</p>
+        <div class="papers-list">
+          ${data.papers.map(p => `
+            <div class="paper-item">
+              <div class="paper-title">${p.title}</div>
+              <div class="paper-meta">${p.year || ''} · 인용 ${p.citations || 0}회</div>
+            </div>`).join('')}
+        </div>`;
+    } else {
+      status.innerHTML = `<div class="alert alert-error">❌ ${data.error}</div>`;
+    }
+  } catch (e) {
+    status.innerHTML = '<div class="alert alert-error">❌ 오류가 발생했습니다.</div>';
+  }
+}
+
+// Step navigation
+function goStep2() {
+  if (!createData.name) {
+    const name = (document.getElementById('manual-name').value || '').trim();
+    if (!name) { alert('교수님 성함을 입력해주세요.'); return; }
+    createData.name = name;
+    createData.affiliation = (document.getElementById('manual-affil').value || '').trim();
+    const interests = (document.getElementById('manual-interests').value || '').trim();
+    createData.interests = interests ? interests.split(',').map(s => s.trim()).filter(Boolean) : [];
+    createData.papers = [...manualPapers];
+  } else {
+    // Merge manual papers
+    const existing = new Set(createData.papers.map(p => p.title));
+    manualPapers.forEach(p => { if (!existing.has(p.title)) createData.papers.push(p); });
+  }
+  setStep(2);
+}
+
+async function handlePhotoUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const formData = new FormData();
+  formData.append('photo', file);
+  const data = await fetch('/api/upload-photo', { method: 'POST', body: formData }).then(r => r.json());
+  if (data.photo_url) {
+    createData.photo = data.photo_url;
+    const preview = document.getElementById('photo-preview');
+    const img = document.getElementById('photo-preview-img');
+    img.src = data.photo_url;
+    preview.style.display = 'block';
+  }
+}
+
+function goStep3() {
+  createData.custom_style = (document.getElementById('custom-style').value || '').trim();
+  setStep(3);
+}
+
+function goStep4() {
+  createData.philosophy = (document.getElementById('philosophy').value || '').trim();
+  createData.emphasizes = (document.getElementById('emphasizes').value || '').trim();
+  createData.dislikes = (document.getElementById('dislikes').value || '').trim();
+  createData.famous_quotes = (document.getElementById('famous-quotes').value || '').trim();
+  setStep(4);
+}
+
+async function saveProfessor() {
+  createData.feedback_examples = (document.getElementById('feedback-examples').value || '').trim();
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true;
+  btn.textContent = '저장 중...';
+
+  try {
+    const data = await fetch('/api/create-professor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(createData),
+    }).then(r => r.json());
+
+    if (data.success) {
+      await loadProfessors();
+      await selectProfessor(data.id);
+    } else {
+      alert('저장 실패: ' + (data.error || '알 수 없는 오류'));
+      btn.disabled = false;
+      btn.textContent = '✓ 교수님 봇 생성';
+    }
+  } catch (e) {
+    alert('저장 중 오류가 발생했습니다.');
+    btn.disabled = false;
+    btn.textContent = '✓ 교수님 봇 생성';
+  }
+}
+
+// ── Chat ──
+async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const message = (input.value || '').trim();
+  if (!message || !currentProfId) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+
+  appendMessage('user', message);
+  chatHistory.push({ role: 'user', content: message });
+
+  const typingId = showTyping();
+  document.getElementById('btn-send').disabled = true;
+
+  try {
+    const data = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        professor_id: currentProfId,
+        messages: chatHistory.slice(0, -1),
+        message,
+      }),
+    }).then(r => r.json());
+
+    removeTyping(typingId);
+
+    if (data.error) {
+      appendMessage('assistant', '⚠️ ' + data.error, true);
+    } else {
+      appendMessage('assistant', data.response);
+      chatHistory.push({ role: 'assistant', content: data.response });
+    }
+  } catch (e) {
+    removeTyping(typingId);
+    appendMessage('assistant', '⚠️ 연결 오류. 앱을 다시 시작해주세요.', true);
+  }
+
+  document.getElementById('btn-send').disabled = false;
+  input.focus();
+}
+
+function appendMessage(role, content, isError = false) {
+  const msgs = document.getElementById('chat-messages');
+  const welcome = msgs.querySelector('.chat-welcome');
+  if (welcome) welcome.remove();
+
+  const avatarHtml = (role === 'assistant' && currentProf?.photo)
+    ? `<img src="${currentProf.photo}" alt="">`
+    : (role === 'assistant' ? '🎓' : '👤');
+
+  const div = document.createElement('div');
+  div.className = `message ${role}`;
+  div.innerHTML = `
+    <div class="msg-avatar">${avatarHtml}</div>
+    <div class="msg-bubble"${isError ? ' style="background:#fff0f0;color:#c62828"' : ''}>
+      ${formatMsg(content)}
+    </div>`;
+
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function formatMsg(text) {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/\n\n+/g, '</p><p style="margin-top:8px">')
+    .replace(/\n/g, '<br>')
+    .replace(/^/, '<p>')
+    .replace(/$/, '</p>');
+}
+
+function showTyping() {
+  const msgs = document.getElementById('chat-messages');
+  const id = 'typing-' + Date.now();
+  const avatarHtml = currentProf?.photo ? `<img src="${currentProf.photo}" alt="">` : '🎓';
+  const div = document.createElement('div');
+  div.className = 'message assistant';
+  div.id = id;
+  div.innerHTML = `
+    <div class="msg-avatar">${avatarHtml}</div>
+    <div class="msg-bubble">
+      <div class="typing-indicator">
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      </div>
+    </div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return id;
+}
+
+function removeTyping(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+// ── Settings ──
+function showSettings() {
+  document.getElementById('modal-settings').classList.add('show');
+  fetch('/api/settings').then(r => r.json()).then(d => {
+    document.getElementById('api-key-input').value = d.api_key || '';
+  });
+}
+
+function hideSettings() {
+  document.getElementById('modal-settings').classList.remove('show');
+}
+
+async function saveSettings() {
+  const apiKey = (document.getElementById('api-key-input').value || '').trim();
+  await fetch('/api/settings', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ api_key: apiKey }),
+  });
+  hideSettings();
+}
+
+// ── Events ──
+document.getElementById('chat-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+
+document.getElementById('chat-input').addEventListener('input', function () {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+
+document.getElementById('modal-settings').addEventListener('click', e => {
+  if (e.target === e.currentTarget) hideSettings();
+});
+
+// ── Init ──
+loadProfessors();
+</script>
+</body>
+</html>
